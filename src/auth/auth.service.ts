@@ -3,7 +3,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
-  Logger
+  Logger,
 } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
 import { UserDto } from '../dto/user.dto';
@@ -27,10 +27,7 @@ export class AuthService {
   private cartCollection: CollectionReference;
   private prodCollection: CollectionReference;
 
-
-  constructor(
-    private readonly fillAndParseEntity: ParseandFillEntity
-  ) {
+  constructor(private readonly fillAndParseEntity: ParseandFillEntity) {
     this.usersCollection = firebaseFirestore.collection('user');
     this.cartCollection = firebaseFirestore.collection('cart');
     this.prodCollection = firebaseFirestore.collection('product');
@@ -63,7 +60,7 @@ export class AuthService {
       }
       const userLogged = userInDb.docs[0].data();
 
-      const userCart = await this.getUserCart(userFirebase.uid)
+      const userCart = await this.getUserCart(userFirebase.uid);
 
       Logger.log(userLogged, 'User logged');
       return { user: userLogged, cart: userCart };
@@ -75,8 +72,8 @@ export class AuthService {
   async register(createUser: UserDto): Promise<DocumentData> {
     try {
       const userInDb: DocumentData = await this.usersCollection
-      .where('email', '==', createUser.email)
-      .get();
+        .where('email', '==', createUser.email)
+        .get();
       const userFirebase = await firebaseAuth.getUserByEmail(createUser.email);
 
       if (userInDb.empty) {
