@@ -3,11 +3,12 @@ import {
   HttpStatus,
   Inject,
   Injectable,
-  Logger
+  Logger,
 } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
 import { UserDto } from '../dto/user.dto';
 import {
+  firebaseApp,
   firebaseAuth,
   firebaseClientAuth,
   firebaseFirestore,
@@ -16,19 +17,20 @@ import { UserRecord } from 'firebase-admin/lib/auth/user-record';
 import { CollectionReference, DocumentData } from 'firebase-admin/firestore';
 import { ParseandFillEntity } from 'src/helpers/parseandFillEntity';
 import { ClientProxy } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
+import * as admin from 'firebase-admin';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import axios from 'axios';
 
 @Injectable()
 export class AuthService {
   private usersCollection: CollectionReference;
+  private cartCollection: CollectionReference;
+  private prodCollection: CollectionReference;
 
-  constructor(
-    private readonly fillAndParseEntity: ParseandFillEntity,
-    @Inject('CART_SERVICE')
-    private readonly cartService: ClientProxy,
-  ) {
+  constructor(private readonly fillAndParseEntity: ParseandFillEntity) {
     this.usersCollection = firebaseFirestore.collection('user');
+    this.cartCollection = firebaseFirestore.collection('cart');
+    this.prodCollection = firebaseFirestore.collection('product');
   }
 
   async login(loginUser: LoginDto): Promise<any> {
@@ -57,9 +59,8 @@ export class AuthService {
         throw new HttpException('No existe el usuario', HttpStatus.NOT_FOUND);
       }
       const userLogged = userInDb.docs[0].data();
-      const userCart = await lastValueFrom(
-        this.cartService.send({ cmd: 'user-cart' }, userFirebase.uid),
-      );
+
+      const userCart = await this.getUserCart(userFirebase.uid);
 
       Logger.log(userLogged, 'User logged');
       return { user: userLogged, cart: userCart };
@@ -84,7 +85,7 @@ export class AuthService {
 
         await newUser.set(userToSave);
         const userSaved = await newUser.get();
-        Logger.log(userSaved, 'User registered');
+        Logger.log(JSON.stringify(userSaved), 'User registered');
 
         return userSaved.data();
       }
@@ -118,6 +119,27 @@ export class AuthService {
     } catch (error) {
       console.error(error);
       return error;
+    }
+  }
+
+  async getUserCart(idUser: string): Promise<DocumentData> {
+    const cartDoc: DocumentData = await this.cartCollection
+      .where('user', '==', idUser)
+      .where('isActive', '!=', false)
+      .get();
+    if (cartDoc.empty) {
+      return {};
+    } else {
+      const userCart = cartDoc.docs[0].data();
+      for (const prod of userCart?.products) {
+        const prodDoc: DocumentData = this.prodCollection.doc(prod.idProduct);
+        const prodCart = await prodDoc.get().then((doc) => {
+          return doc.data();
+        });
+        if (prodCart) prod.productName = prodCart.name;
+      }
+      Logger.log(userCart, 'Cart');
+      return userCart;
     }
   }
 }
