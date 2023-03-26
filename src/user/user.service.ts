@@ -3,7 +3,6 @@ import { CollectionReference, DocumentData } from 'firebase-admin/firestore';
 import { AddressDto } from 'src/dto/address.dto';
 import { firebaseFirestore } from '../firebase/firebase.app';
 import { ParseandFillEntity } from 'src/helpers/parseandFillEntity';
-
 @Injectable()
 export class UserService {
   private addressCollection: CollectionReference;
