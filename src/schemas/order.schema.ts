@@ -27,4 +27,3 @@ export class Order extends Document {
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
-

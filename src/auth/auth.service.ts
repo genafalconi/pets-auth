@@ -12,23 +12,26 @@ import { Cart } from 'src/schemas/cart.schema';
 
 @Injectable()
 export class AuthService {
-
   constructor(
     private readonly fillAndParseEntity: ParseandFillEntity,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
     @InjectModel(Cart.name)
-    private readonly cartModel: Model<Cart>
-  ) { }
+    private readonly cartModel: Model<Cart>,
+  ) {}
 
   async login(loginUser: LoginDto): Promise<any> {
     try {
-      const userInDb: User = await this.userModel.findOne({ email: loginUser.email }).exec();
-      const userFirebase: UserRecord = await firebaseAuth.getUserByEmail(loginUser.email);
+      const userInDb: User = await this.userModel
+        .findOne({ email: loginUser.email })
+        .exec();
+      const userFirebase: UserRecord = await firebaseAuth.getUserByEmail(
+        loginUser.email,
+      );
 
-      let cartUser: Cart
+      let cartUser: Cart;
       if (userInDb) {
-        cartUser = await this.getUserCart(userInDb._id)
+        cartUser = await this.getUserCart(userInDb._id);
       }
 
       if (
@@ -39,17 +42,17 @@ export class AuthService {
         const userToSave: User = this.fillAndParseEntity.fillUserToObj(
           userFirebase,
           loginUser,
-          this.userModel
+          this.userModel,
         );
-        const googleUser = await this.userModel.create(userToSave)
-        Logger.log('User logged', googleUser)
+        const googleUser = await this.userModel.create(userToSave);
+        Logger.log('User logged', googleUser);
         return { user: googleUser, cart: cartUser ? cartUser : {} };
       }
       if (!userInDb && !userFirebase) {
         throw new HttpException('No existe el usuario', HttpStatus.NOT_FOUND);
       }
 
-      Logger.log('User logged', userInDb)
+      Logger.log('User logged', userInDb);
       return { user: userInDb, cart: cartUser ? cartUser : {} };
     } catch (error) {
       return error;
@@ -58,18 +61,28 @@ export class AuthService {
 
   async register(createUser: UserDto): Promise<User> {
     try {
-      const userInDb = await this.userModel.findOne({ email: createUser.email });
+      const userInDb = await this.userModel.findOne({
+        email: createUser.email,
+      });
       const userFirebase = await firebaseAuth.getUserByEmail(createUser.email);
 
       if (!userInDb) {
-        const userToSave = this.fillAndParseEntity.fillUserToObj(userFirebase, createUser, this.userModel);
+        const userToSave = this.fillAndParseEntity.fillUserToObj(
+          userFirebase,
+          createUser,
+          this.userModel,
+        );
         const userSaved = await this.userModel.create(userToSave);
         Logger.log(JSON.stringify(userSaved), 'User registered');
 
         return userSaved;
       }
 
-      if (userInDb && userFirebase && userFirebase.providerData[0].providerId !== 'google.com') {
+      if (
+        userInDb &&
+        userFirebase &&
+        userFirebase.providerData[0].providerId !== 'google.com'
+      ) {
         throw new Error('Ya existe una cuenta con ese email, logueate');
       } else {
         throw new Error('Hay un error al registrarse');
@@ -78,7 +91,6 @@ export class AuthService {
       throw new Error(`Failed to register user: ${error.message}`);
     }
   }
-
 
   async getToken(loginDto: LoginDto) {
     const { email, password } = loginDto;
@@ -101,7 +113,9 @@ export class AuthService {
 
   async getUserCart(idUser: string): Promise<Cart | null> {
     try {
-      const userCart = await this.cartModel.findOne({ user: new Types.ObjectId(idUser), active: true }).exec();
+      const userCart = await this.cartModel
+        .findOne({ user: new Types.ObjectId(idUser), active: true })
+        .exec();
       if (!userCart) {
         return null;
       }
@@ -113,12 +127,12 @@ export class AuthService {
 
   async verifyToken(token: string) {
     try {
-      token = token.split(' ')[1]
-      const tokenValidation = await firebaseAuth.verifyIdToken(token)
+      token = token.split(' ')[1];
+      const tokenValidation = await firebaseAuth.verifyIdToken(token);
       if (tokenValidation) {
-        return true
+        return true;
       } else {
-        return false
+        return false;
       }
     } catch (error) {
       console.error(error);

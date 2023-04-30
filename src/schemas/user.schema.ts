@@ -7,7 +7,7 @@ export class User extends Document {
   email: string;
 
   @Prop({ required: true })
-  full_name: string
+  full_name: string;
 
   @Prop({ required: true })
   active: boolean;
@@ -16,13 +16,13 @@ export class User extends Document {
   admin: boolean;
 
   @Prop({ required: false })
-  phone: string
+  phone: string;
 
   @Prop({ required: true })
-  provider_login: string
+  provider_login: string;
 
   @Prop({ required: true })
-  firebase_id: string
+  firebase_id: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Cart' })
   active_cart: Types.ObjectId;
@@ -32,8 +32,6 @@ export class User extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'Order' })
   orders: Types.ObjectId[];
-
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-

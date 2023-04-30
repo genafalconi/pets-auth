@@ -5,11 +5,18 @@ import { User } from './user.schema';
 
 @Schema({ timestamps: true })
 export class Cart extends Document {
-
-  @Prop({ type: [{ _id: false, subproduct: { type: Types.ObjectId, ref: 'Subproduct' }, quantity: 'number' }] })
+  @Prop({
+    type: [
+      {
+        _id: false,
+        subproduct: { type: Types.ObjectId, ref: 'Subproduct' },
+        quantity: 'number',
+      },
+    ],
+  })
   subproducts: {
-    subproduct: Subproduct,
-    quantity: number
+    subproduct: Subproduct;
+    quantity: number;
   }[];
 
   @Prop({ required: true })
@@ -26,7 +33,6 @@ export class Cart extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   user: User;
-
 }
 
 export const CartSchema = SchemaFactory.createForClass(Cart);
@@ -37,9 +43,8 @@ CartSchema.pre('findOne', function (next) {
     model: 'Subproduct',
     populate: {
       path: 'product',
-      model: 'Product'
-    }
+      model: 'Product',
+    },
   });
   next();
 });
-

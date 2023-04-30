@@ -17,7 +17,7 @@ import { UserModule } from './user/user.module';
       }),
     }),
     AuthModule,
-    UserModule
+    UserModule,
   ],
   controllers: [],
   providers: [],

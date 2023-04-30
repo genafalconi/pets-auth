@@ -23,12 +23,9 @@ import { Order, OrderSchema } from 'src/schemas/order.schema';
       { name: Subproduct.name, schema: SubproductSchema },
       { name: Offer.name, schema: OfferSchema },
       { name: Order.name, schema: OrderSchema },
-    ])
+    ]),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    ParseandFillEntity
-  ],
+  providers: [AuthService, ParseandFillEntity],
 })
-export class AuthModule { }
+export class AuthModule {}

@@ -10,27 +10,40 @@ export class UserService {
   constructor(
     private readonly parseAddress: ParseandFillEntity,
     @InjectModel(Address.name)
-    private readonly addressModel: Model<Address>
-  ) { }
+    private readonly addressModel: Model<Address>,
+  ) {}
 
-  async createUserAddress(idUser: string, address: AddressDto): Promise<Address> {
-    const addressInDb: Address = await this.addressModel.findOne({ user: idUser });
+  async createUserAddress(
+    idUser: string,
+    address: AddressDto,
+  ): Promise<Address> {
+    const addressInDb: Address = await this.addressModel.findOne({
+      user: idUser,
+    });
 
     if (!addressInDb) {
-      const newAddress = this.parseAddress.fillAddressToObj(idUser, address, this.addressModel);
+      const newAddress = this.parseAddress.fillAddressToObj(
+        idUser,
+        address,
+        this.addressModel,
+      );
 
       const addressSaved = await newAddress.save();
       Logger.log(addressSaved, 'User address creado');
       return addressSaved;
     } else {
-      const userAddress: Address = await this.addressModel.findOne({ user: idUser });
+      const userAddress: Address = await this.addressModel.findOne({
+        user: idUser,
+      });
       Logger.log(userAddress, 'User Address existente');
       return userAddress;
     }
   }
 
   async getUserAddress(idUser: string): Promise<Address[]> {
-    const userAddresses: Address[] = await this.addressModel.find({ user: new Types.ObjectId(idUser) });
+    const userAddresses: Address[] = await this.addressModel.find({
+      user: new Types.ObjectId(idUser),
+    });
     Logger.log(userAddresses, 'User Addresses');
     return userAddresses;
   }
