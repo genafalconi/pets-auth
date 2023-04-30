@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { DocumentData } from 'firebase-admin/firestore';
 import { AddressDto } from 'src/dto/address.dto';
 import { FirebaseAuthGuard } from 'src/firebase/firebase.auth.guard';
@@ -15,7 +7,7 @@ import { UserService } from './user.service';
 @UseGuards(FirebaseAuthGuard)
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @Post('/address/:idUser')
   async createUserAddress(
