@@ -59,10 +59,9 @@ UserSchema.pre('find', function (next) {
             },
           },
         ],
-        select: '_id total_price total_products subproducts'
-      }
-    ]
+        select: '_id total_price total_products subproducts',
+      },
+    ],
   });
   next();
 });
-

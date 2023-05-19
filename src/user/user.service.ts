@@ -13,8 +13,8 @@ export class UserService {
     @InjectModel(Address.name)
     private readonly addressModel: Model<Address>,
     @InjectModel(User.name)
-    private readonly userModel: Model<User>
-  ) { }
+    private readonly userModel: Model<User>,
+  ) {}
 
   async createUserAddress(
     idUser: string,
@@ -57,7 +57,9 @@ export class UserService {
   }
 
   async removeUserAddress(idAddress: string): Promise<void> {
-    const addressInDb: Address = await this.addressModel.findOneAndDelete({ _id: idAddress });
+    const addressInDb: Address = await this.addressModel.findOneAndDelete({
+      _id: idAddress,
+    });
     if (addressInDb) {
       Logger.log(addressInDb, 'Address deleted');
     }
@@ -68,10 +70,12 @@ export class UserService {
   }
 
   async getUserInfo(idUser: string): Promise<User> {
-    return await this.userModel.findById(idUser).populate('addresses')
+    return await this.userModel.findById(idUser).populate('addresses');
   }
 
-    async getUserOrders(idUser: string): Promise<User[]> {
-      return await this.userModel.find({ _id: new Types.ObjectId(idUser) }).lean()
-    }
+  async getUserOrders(idUser: string): Promise<User[]> {
+    return await this.userModel
+      .find({ _id: new Types.ObjectId(idUser) })
+      .lean();
+  }
 }
