@@ -24,14 +24,45 @@ export class User extends Document {
   @Prop({ required: true })
   firebase_id: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Cart' })
-  active_cart: Types.ObjectId;
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Address' }], default: [] })
+  addresses: Types.ObjectId[];
 
-  @Prop({ type: Types.ObjectId, ref: 'Address' })
-  active_address: Types.ObjectId[];
-
-  @Prop({ type: Types.ObjectId, ref: 'Order' })
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Order' }], default: [] })
   orders: Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.pre('find', function (next) {
+  this.populate({
+    path: 'orders',
+    model: 'Order',
+    options: { sort: { createdAt: 'desc' } },
+    populate: [
+      {
+        path: 'offer',
+        model: 'Offer',
+        select: '_id date',
+      },
+      {
+        path: 'cart',
+        model: 'Cart',
+        populate: [
+          {
+            path: 'subproducts.subproduct',
+            model: 'Subproduct',
+            select: '_id sell_price size',
+            populate: {
+              path: 'product',
+              model: 'Product',
+              select: '_id name',
+            },
+          },
+        ],
+        select: '_id total_price total_products subproducts'
+      }
+    ]
+  });
+  next();
+});
+

@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Address } from '../schemas/address.schema';
 import { AddressDto } from '../dto/address.dto';
 import { ParseandFillEntity } from 'src/helpers/parseandFillEntity';
+import { User } from 'src/schemas/user.schema';
 
 @Injectable()
 export class UserService {
@@ -11,7 +12,9 @@ export class UserService {
     private readonly parseAddress: ParseandFillEntity,
     @InjectModel(Address.name)
     private readonly addressModel: Model<Address>,
-  ) {}
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>
+  ) { }
 
   async createUserAddress(
     idUser: string,
@@ -29,6 +32,11 @@ export class UserService {
       );
 
       const addressSaved = await newAddress.save();
+      await this.userModel.updateOne(
+        { _id: idUser },
+        { $push: { addresses: addressSaved._id } },
+      );
+
       Logger.log(addressSaved, 'User address creado');
       return addressSaved;
     } else {
@@ -49,16 +57,21 @@ export class UserService {
   }
 
   async removeUserAddress(idAddress: string): Promise<void> {
-    const addressInDb: Address = await this.addressModel.findById(idAddress);
-
+    const addressInDb: Address = await this.addressModel.findOneAndDelete({ _id: idAddress });
     if (addressInDb) {
       Logger.log(addressInDb, 'Address deleted');
-      await this.addressModel.deleteOne(addressInDb._id);
     }
   }
 
   async getUserAddressById(addressId: string): Promise<Address> {
-    const addressInDb: Address = await this.addressModel.findById(addressId);
-    return addressInDb;
+    return await this.addressModel.findById(addressId);
   }
+
+  async getUserInfo(idUser: string): Promise<User> {
+    return await this.userModel.findById(idUser).populate('addresses')
+  }
+
+    async getUserOrders(idUser: string): Promise<User[]> {
+      return await this.userModel.find({ _id: new Types.ObjectId(idUser) }).lean()
+    }
 }
