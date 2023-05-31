@@ -1,81 +1,81 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CollectionReference, DocumentData } from 'firebase-admin/firestore';
-import { AddressDto } from 'src/dto/address.dto';
-import { firebaseFirestore } from '../firebase/firebase.app';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Address } from '../schemas/address.schema';
+import { AddressDto } from '../dto/address.dto';
 import { ParseandFillEntity } from 'src/helpers/parseandFillEntity';
+import { User } from 'src/schemas/user.schema';
+
 @Injectable()
 export class UserService {
-  private addressCollection: CollectionReference;
-
-  constructor(private readonly parseAddress: ParseandFillEntity) {
-    this.addressCollection = firebaseFirestore.collection('address');
-  }
+  constructor(
+    private readonly parseAddress: ParseandFillEntity,
+    @InjectModel(Address.name)
+    private readonly addressModel: Model<Address>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
+  ) {}
 
   async createUserAddress(
     idUser: string,
     address: AddressDto,
-  ): Promise<DocumentData> {
-    const addressInDb: DocumentData = await this.addressCollection
-      .where('user', '==', idUser)
-      .get();
+  ): Promise<Address> {
+    const addressInDb: Address = await this.addressModel.findOne({
+      user: idUser,
+    });
 
-    if (addressInDb.empty) {
-      const newAddress = this.parseAddress.fillAddressToObj(idUser, address);
-      const addressDocs = this.addressCollection.doc();
-      await addressDocs.set(Object.assign({}, newAddress));
+    if (!addressInDb) {
+      const newAddress = this.parseAddress.fillAddressToObj(
+        idUser,
+        address,
+        this.addressModel,
+      );
 
-      const addressGet = await addressDocs.get();
-      const addressSaved = addressGet.data();
+      const addressSaved = await newAddress.save();
+      await this.userModel.updateOne(
+        { _id: idUser },
+        { $push: { addresses: addressSaved._id } },
+      );
+
       Logger.log(addressSaved, 'User address creado');
       return addressSaved;
     } else {
-      const userAddress: DocumentData[] = [];
-      addressInDb.docs.map((elem: any) => {
-        const addressWithId = {
-          id: elem.id,
-          ...elem.data(),
-        };
-        userAddress.push(addressWithId);
+      const userAddress: Address = await this.addressModel.findOne({
+        user: idUser,
       });
       Logger.log(userAddress, 'User Address existente');
       return userAddress;
     }
   }
 
-  async getUserAddress(idUser: string): Promise<DocumentData> {
-    const addressInDb: DocumentData = await this.addressCollection
-      .where('user', '==', idUser)
-      .get();
-    const userAddresses: DocumentData[] = [];
-
-    if (!addressInDb.empty) {
-      addressInDb.docs.map((elem: any) => {
-        const addressWithId = {
-          id: elem.id,
-          ...elem.data(),
-        };
-        userAddresses.push(addressWithId);
-      });
-    }
+  async getUserAddress(idUser: string): Promise<Address[]> {
+    const userAddresses: Address[] = await this.addressModel.find({
+      user: new Types.ObjectId(idUser),
+    });
     Logger.log(userAddresses, 'User Addresses');
     return userAddresses;
   }
 
   async removeUserAddress(idAddress: string): Promise<void> {
-    const addressInDb: DocumentData = await this.addressCollection
-      .doc(idAddress)
-      .get();
-    const addressDoc = await addressInDb.get();
-    if (addressDoc.exists) {
-      Logger.log(addressDoc.data(), 'Address deleted');
-      await addressInDb.delete();
+    const addressInDb: Address = await this.addressModel.findOneAndDelete({
+      _id: idAddress,
+    });
+    if (addressInDb) {
+      Logger.log(addressInDb, 'Address deleted');
     }
   }
 
-  async getUserAddressById(addressId: string): Promise<DocumentData> {
-    const addressInDb: DocumentData = await this.addressCollection
-      .doc(addressId)
-      .get();
-    return addressInDb.data();
+  async getUserAddressById(addressId: string): Promise<Address> {
+    return await this.addressModel.findById(addressId);
+  }
+
+  async getUserInfo(idUser: string): Promise<User> {
+    return await this.userModel.findById(idUser).populate('addresses');
+  }
+
+  async getUserOrders(idUser: string): Promise<User[]> {
+    return await this.userModel
+      .find({ _id: new Types.ObjectId(idUser) })
+      .lean();
   }
 }

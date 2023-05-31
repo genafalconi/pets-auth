@@ -1,42 +1,44 @@
-import { DocumentData } from 'firebase-admin/firestore';
+import { Model, Types } from 'mongoose';
 import { AddressDto } from 'src/dto/address.dto';
-import { AddressEntity } from 'src/entities/address.entity';
-import { UserEntity } from 'src/entities/user.entity';
+import { Address } from 'src/schemas/address.schema';
+import { User } from 'src/schemas/user.schema';
 
 export class ParseandFillEntity {
-  fillUserToObj(dataFirebase: any, dataForm: any): DocumentData {
-    const userToSave: UserEntity = new UserEntity();
+  fillUserToObj(
+    dataFirebase: any,
+    dataForm: any,
+    userModel: Model<User>,
+  ): User {
+    const userToSave = new userModel({
+      email: dataFirebase.email,
+      full_name: dataForm.fullName,
+      active: true,
+      admin: false,
+      phone: dataForm.phone,
+      provider_login: dataFirebase.providerData[0].providerId,
+      firebase_id: dataFirebase.uid,
+    });
 
-    userToSave.id = dataFirebase.uid || '';
-    userToSave.email = dataFirebase.email || '';
-    userToSave.fullName = dataForm.fullName || '';
-    userToSave.phone = dataForm.phone || '';
-    userToSave.providerLogin = dataFirebase.providerData[0].providerId || '';
-    userToSave.isActive = true;
-    userToSave.isAdmin = false;
-    userToSave.created_at = new Date().toISOString();
-    userToSave.updated_at = new Date().toISOString();
-
-    const plainObj = Object.assign({}, userToSave);
-
-    return plainObj;
+    return userToSave;
   }
 
-  fillAddressToObj(idUser: string, dataForm: AddressDto): DocumentData {
-    const addressToSave: AddressEntity = new AddressEntity();
+  fillAddressToObj(
+    userId: string,
+    dataForm: AddressDto,
+    addressModel: Model<Address>,
+  ): Address {
+    const addressToSave = new addressModel({
+      user: new Types.ObjectId(userId),
+      street: dataForm.street || '',
+      number: dataForm.number || 0,
+      floor: dataForm.floor || '',
+      flat: dataForm.flat || '',
+      active: true,
+      city: dataForm.city || '',
+      province: dataForm.province || '',
+      extra: dataForm.extra || '',
+    });
 
-    addressToSave.user = idUser || '';
-    addressToSave.street = dataForm.street || '';
-    addressToSave.number = dataForm.number || 0;
-    addressToSave.floor = dataForm.floor || '';
-    addressToSave.flat = dataForm.flat || '';
-    addressToSave.isActive = true;
-    addressToSave.city = dataForm.city || '';
-    addressToSave.province = dataForm.province || '';
-    addressToSave.extra = dataForm.extra || '';
-
-    const plainObj = Object.assign({}, addressToSave);
-
-    return plainObj;
+    return addressToSave;
   }
 }

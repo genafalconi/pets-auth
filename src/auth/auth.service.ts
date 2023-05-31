@@ -1,105 +1,94 @@
-import {
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
 import { UserDto } from '../dto/user.dto';
-import {
-  firebaseApp,
-  firebaseAuth,
-  firebaseClientAuth,
-  firebaseFirestore,
-} from '../firebase/firebase.app';
+import { firebaseAuth, firebaseClientAuth } from '../firebase/firebase.app';
 import { UserRecord } from 'firebase-admin/lib/auth/user-record';
-import { CollectionReference, DocumentData } from 'firebase-admin/firestore';
 import { ParseandFillEntity } from 'src/helpers/parseandFillEntity';
-import { ClientProxy } from '@nestjs/microservices';
-import * as admin from 'firebase-admin';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import axios from 'axios';
+import { InjectModel } from '@nestjs/mongoose';
+import { User } from 'src/schemas/user.schema';
+import { Model, Types } from 'mongoose';
+import { Cart } from 'src/schemas/cart.schema';
 
 @Injectable()
 export class AuthService {
-  private usersCollection: CollectionReference;
-  private cartCollection: CollectionReference;
-  private prodCollection: CollectionReference;
-
-  constructor(private readonly fillAndParseEntity: ParseandFillEntity) {
-    this.usersCollection = firebaseFirestore.collection('user');
-    this.cartCollection = firebaseFirestore.collection('cart');
-    this.prodCollection = firebaseFirestore.collection('product');
-  }
+  constructor(
+    private readonly fillAndParseEntity: ParseandFillEntity,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
+    @InjectModel(Cart.name)
+    private readonly cartModel: Model<Cart>,
+  ) {}
 
   async login(loginUser: LoginDto): Promise<any> {
     try {
-      const userInDb: DocumentData = await this.usersCollection
-        .where('email', '==', loginUser.email)
-        .get();
+      const userInDb: User = await this.userModel
+        .findOne({ email: loginUser.email })
+        .exec();
       const userFirebase: UserRecord = await firebaseAuth.getUserByEmail(
         loginUser.email,
       );
+
+      let cartUser: Cart;
+      if (userInDb) {
+        cartUser = await this.getUserCart(userInDb._id);
+      }
+
       if (
-        userInDb.empty &&
+        !userInDb &&
         userFirebase &&
         userFirebase.providerData[0].providerId === 'google.com'
       ) {
-        const userToSave: DocumentData = this.fillAndParseEntity.fillUserToObj(
+        const userToSave: User = this.fillAndParseEntity.fillUserToObj(
           userFirebase,
           loginUser,
+          this.userModel,
         );
-        const googleUser = this.usersCollection.doc();
-        await googleUser.set(userToSave);
-        const userSaved = await googleUser.get();
-        return userSaved.data();
+        const googleUser = await this.userModel.create(userToSave);
+        Logger.log('User logged', googleUser);
+        return { user: googleUser, cart: cartUser ? cartUser : {} };
       }
-      if (userInDb.empty && !userFirebase) {
+      if (!userInDb && !userFirebase) {
         throw new HttpException('No existe el usuario', HttpStatus.NOT_FOUND);
       }
-      const userLogged = userInDb.docs[0].data();
 
-      const userCart = await this.getUserCart(userFirebase.uid);
-
-      Logger.log(userLogged, 'User logged');
-      return { user: userLogged, cart: userCart };
+      Logger.log('User logged', userInDb);
+      return { user: userInDb, cart: cartUser ? cartUser : {} };
     } catch (error) {
       return error;
     }
   }
 
-  async register(createUser: UserDto): Promise<DocumentData> {
+  async register(createUser: UserDto): Promise<User> {
     try {
-      const userInDb: DocumentData = await this.usersCollection
-        .where('email', '==', createUser.email)
-        .get();
+      const userInDb = await this.userModel.findOne({
+        email: createUser.email,
+      });
       const userFirebase = await firebaseAuth.getUserByEmail(createUser.email);
 
-      if (userInDb.empty) {
-        const userToSave: DocumentData = this.fillAndParseEntity.fillUserToObj(
+      if (!userInDb) {
+        const userToSave = this.fillAndParseEntity.fillUserToObj(
           userFirebase,
           createUser,
+          this.userModel,
         );
-        const newUser = this.usersCollection.doc();
-
-        await newUser.set(userToSave);
-        const userSaved = await newUser.get();
+        const userSaved = await this.userModel.create(userToSave);
         Logger.log(JSON.stringify(userSaved), 'User registered');
 
-        return userSaved.data();
+        return userSaved;
       }
+
       if (
         userInDb &&
         userFirebase &&
         userFirebase.providerData[0].providerId !== 'google.com'
       ) {
-        return new Error('Ya existe una cuenta con ese email, logueate');
+        throw new Error('Ya existe una cuenta con ese email, logueate');
       } else {
-        return new Error('Hay un error al registrarse');
+        throw new Error('Hay un error al registrarse');
       }
     } catch (error) {
-      return new Error(error);
+      throw new Error(`Failed to register user: ${error.message}`);
     }
   }
 
@@ -122,24 +111,32 @@ export class AuthService {
     }
   }
 
-  async getUserCart(idUser: string): Promise<DocumentData> {
-    const cartDoc: DocumentData = await this.cartCollection
-      .where('user', '==', idUser)
-      .where('isActive', '!=', false)
-      .get();
-    if (cartDoc.empty) {
-      return {};
-    } else {
-      const userCart = cartDoc.docs[0].data();
-      for (const prod of userCart?.products) {
-        const prodDoc: DocumentData = this.prodCollection.doc(prod.idProduct);
-        const prodCart = await prodDoc.get().then((doc) => {
-          return doc.data();
-        });
-        if (prodCart) prod.productName = prodCart.name;
+  async getUserCart(idUser: string): Promise<Cart | null> {
+    try {
+      const userCart = await this.cartModel
+        .findOne({ user: new Types.ObjectId(idUser), active: true })
+        .exec();
+      if (!userCart) {
+        return null;
       }
-      Logger.log(userCart, 'Cart');
       return userCart;
+    } catch (error) {
+      throw new Error(`Failed to get user cart: ${error.message}`);
+    }
+  }
+
+  async verifyToken(token: string) {
+    try {
+      token = token.split(' ')[1];
+      const tokenValidation = await firebaseAuth.verifyIdToken(token);
+      if (tokenValidation) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error(error);
+      return error;
     }
   }
 }
