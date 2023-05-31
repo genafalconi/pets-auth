@@ -17,18 +17,5 @@
       ],
       "runtime": "nodejs16"
     }
-  ],
-  "hosting": {
-    "public": ".",
-    "ignore": [
-      "**/node_modules/**",
-      "**/env/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  }
+  ]
 }
