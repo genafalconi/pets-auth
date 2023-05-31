@@ -3,7 +3,7 @@
 /node_modules
 /env
 /public
-/env/dev.env
+env/dev.env
 
 # Logs
 logs
