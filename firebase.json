@@ -7,7 +7,8 @@
         "node_modules",
         ".git",
         "firebase-debug.log",
-        "firebase-debug.*.log"
+        "firebase-debug.*.log",
+        "**/env/**"
       ],
       "region": "us-central",
       "predeploy": [
@@ -20,7 +21,8 @@
   "hosting": {
     "public": ".",
     "ignore": [
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/env/**"
     ],
     "rewrites": [
       {
