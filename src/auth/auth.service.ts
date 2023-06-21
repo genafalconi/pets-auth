@@ -18,7 +18,7 @@ export class AuthService {
     private readonly userModel: Model<User>,
     @InjectModel(Cart.name)
     private readonly cartModel: Model<Cart>,
-  ) {}
+  ) { }
 
   async login(loginUser: LoginDto): Promise<any> {
     try {
@@ -131,6 +131,28 @@ export class AuthService {
       const tokenValidation = await firebaseAuth.verifyIdToken(token);
       if (tokenValidation) {
         return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error(error);
+      return error;
+    }
+  }
+
+  async verifyAdminToken(token: string, user: string) {
+    try {
+      token = token.split(' ')[1];
+      const [userIsAdmin, tokenValidation] = await Promise.all([
+        await this.userModel.findById(user),
+        await firebaseAuth.verifyIdToken(token)
+      ])
+      if (userIsAdmin) {
+        if (userIsAdmin.admin && tokenValidation) {
+          return true;
+        } else {
+          return false;
+        }
       } else {
         return false;
       }

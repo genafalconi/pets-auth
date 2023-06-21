@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post, Query, Req } from '@nestjs/common';
 import { DocumentData } from 'firebase-admin/firestore';
 import { CustomRequest } from 'src/firebase/customRequest';
 import { LoginDto } from '../dto/login.dto';
@@ -31,5 +31,10 @@ export class AuthController {
   @Get('/verify-token')
   async verifyTokenFirebase(@Req() req: CustomRequest): Promise<boolean> {
     return await this.authService.verifyToken(req.headers.authorization);
+  }
+
+  @Get('/verify-admin-token')
+  async verifyAdminTokenFirebase(@Req() req: CustomRequest, @Query('user') user: string): Promise<boolean> {
+    return await this.authService.verifyAdminToken(req.headers.authorization, user);
   }
 }

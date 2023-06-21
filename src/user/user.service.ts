@@ -14,12 +14,12 @@ export class UserService {
     private readonly addressModel: Model<Address>,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
-  ) {}
+  ) { }
 
   async createUserAddress(
     idUser: string,
     address: AddressDto,
-  ): Promise<Address> {
+  ): Promise<Address[] | Address> {
     const addressInDb: Address = await this.addressModel.findOne({
       user: idUser,
     });
@@ -31,14 +31,20 @@ export class UserService {
         this.addressModel,
       );
 
-      const addressSaved = await newAddress.save();
-      await this.userModel.updateOne(
-        { _id: idUser },
-        { $push: { addresses: addressSaved._id } },
-      );
+      const addressSaved = await newAddress.save()
+
+      const [updated, addresses] = await Promise.all([
+        await this.userModel.updateOne(
+          { _id: idUser },
+          { $push: { addresses: addressSaved._id } }
+        ),
+        await this.addressModel.find({
+          user: idUser
+        })
+      ])
 
       Logger.log(addressSaved, 'User address creado');
-      return addressSaved;
+      return addresses;
     } else {
       const userAddress: Address = await this.addressModel.findOne({
         user: idUser,

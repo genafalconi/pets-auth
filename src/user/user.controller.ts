@@ -23,7 +23,7 @@ export class UserController {
   async createUserAddress(
     @Param('idUser') idUser: string,
     @Body() addressData: AddressDto,
-  ): Promise<Address> {
+  ): Promise<Address[] | Address> {
     return await this.userService.createUserAddress(idUser, addressData);
   }
 
