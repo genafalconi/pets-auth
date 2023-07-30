@@ -19,7 +19,7 @@ export class UserService {
   async createUserAddress(
     idUser: string,
     address: AddressDto,
-  ): Promise<Address[] | Address> {
+  ): Promise<Address> {
     const addressInDb: Address = await this.addressModel.findOne({
       user: idUser,
     });
@@ -31,20 +31,14 @@ export class UserService {
         this.addressModel,
       );
 
-      const addressSaved = await newAddress.save()
-
-      const [updated, addresses] = await Promise.all([
-        await this.userModel.updateOne(
-          { _id: idUser },
-          { $push: { addresses: addressSaved._id } }
-        ),
-        await this.addressModel.find({
-          user: idUser
-        })
-      ])
+      const addressSaved = await newAddress.save();
+      await this.userModel.updateOne(
+        { _id: idUser },
+        { $push: { addresses: addressSaved._id } },
+      )
 
       Logger.log(addressSaved, 'User address creado');
-      return addresses;
+      return addressSaved;
     } else {
       const userAddress: Address = await this.addressModel.findOne({
         user: idUser,
@@ -62,12 +56,16 @@ export class UserService {
     return userAddresses;
   }
 
-  async removeUserAddress(idAddress: string): Promise<void> {
-    const addressInDb: Address = await this.addressModel.findOneAndDelete({
-      _id: idAddress,
-    });
+  async removeUserAddress(idAddress: string): Promise<Address> {
+    const addressInDb: Address = await this.addressModel.findByIdAndDelete(new Types.ObjectId(idAddress));
     if (addressInDb) {
+      await this.userModel.findByIdAndUpdate(
+        addressInDb.user,
+        { $pull: { addresses: addressInDb._id } }
+      );
+
       Logger.log(addressInDb, 'Address deleted');
+      return addressInDb;
     }
   }
 
@@ -82,6 +80,35 @@ export class UserService {
   async getUserOrders(idUser: string): Promise<User[]> {
     return await this.userModel
       .find({ _id: new Types.ObjectId(idUser) })
+      .populate({
+        path: 'orders',
+        model: 'Order',
+        options: { sort: { createdAt: 'desc' } },
+        populate: [
+          {
+            path: 'offer',
+            model: 'Offer',
+            select: '_id date',
+          },
+          {
+            path: 'cart',
+            model: 'Cart',
+            populate: [
+              {
+                path: 'subproducts.subproduct',
+                model: 'Subproduct',
+                select: '_id sell_price size',
+                populate: {
+                  path: 'product',
+                  model: 'Product',
+                  select: '_id name',
+                },
+              },
+            ],
+            select: '_id total_price total_products subproducts',
+          },
+        ],
+      })
       .lean();
   }
 }

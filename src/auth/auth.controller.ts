@@ -1,8 +1,15 @@
-import { Body, Controller, Get, Inject, Post, Query, Req } from '@nestjs/common';
-import { DocumentData } from 'firebase-admin/firestore';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { CustomRequest } from 'src/firebase/customRequest';
-import { LoginDto } from '../dto/login.dto';
-import { UserDto } from '../dto/user.dto';
+import { LoginDto, UserLoginDto } from '../dto/login.dto';
+import { UserRegisterDto } from '../dto/user.dto';
 import { AuthService } from './auth.service';
 import { User } from 'src/schemas/user.schema';
 
@@ -14,12 +21,12 @@ export class AuthController {
   ) {}
 
   @Post('/login')
-  async loginUser(@Body() login: LoginDto): Promise<User> {
+  async loginUser(@Body() login: UserLoginDto): Promise<User> {
     return await this.authService.login(login);
   }
 
   @Post('/register')
-  async registerUser(@Body() user: UserDto): Promise<User> {
+  async registerUser(@Body() user: UserRegisterDto): Promise<User> {
     return await this.authService.register(user);
   }
 
@@ -34,7 +41,13 @@ export class AuthController {
   }
 
   @Get('/verify-admin-token')
-  async verifyAdminTokenFirebase(@Req() req: CustomRequest, @Query('user') user: string): Promise<boolean> {
-    return await this.authService.verifyAdminToken(req.headers.authorization, user);
+  async verifyAdminTokenFirebase(
+    @Req() req: CustomRequest,
+    @Query('user') user: string,
+  ): Promise<boolean> {
+    return await this.authService.verifyAdminToken(
+      req.headers.authorization,
+      user,
+    );
   }
 }
