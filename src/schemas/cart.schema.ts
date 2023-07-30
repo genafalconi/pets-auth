@@ -36,15 +36,3 @@ export class Cart extends Document {
 }
 
 export const CartSchema = SchemaFactory.createForClass(Cart);
-
-CartSchema.pre('findOne', function (next) {
-  this.populate({
-    path: 'subproducts.subproduct',
-    model: 'Subproduct',
-    populate: {
-      path: 'product',
-      model: 'Product',
-    },
-  });
-  next();
-});

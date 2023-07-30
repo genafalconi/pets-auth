@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { Document, Types } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Address extends Document {
@@ -32,9 +32,3 @@ export class Address extends Document {
 }
 
 export const AddressSchema = SchemaFactory.createForClass(Address);
-
-AddressSchema.pre('findOneAndDelete', async function (this: Address) {
-  await mongoose
-    .model('User')
-    .updateMany({ addresses: this._id }, { $pull: { addresses: this._id } });
-});

@@ -1,14 +1,15 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { LoginDto } from '../dto/login.dto';
-import { UserDto } from '../dto/user.dto';
+import { CartDto, LoginDto, UserLoginDto } from '../dto/login.dto';
+import { UserRegisterDto } from '../dto/user.dto';
 import { firebaseAuth, firebaseClientAuth } from '../firebase/firebase.app';
-import { UserRecord } from 'firebase-admin/lib/auth/user-record';
 import { ParseandFillEntity } from 'src/helpers/parseandFillEntity';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from 'src/schemas/user.schema';
 import { Model, Types } from 'mongoose';
 import { Cart } from 'src/schemas/cart.schema';
+import { Subproduct } from 'src/schemas/subprod.schema';
+import { CartPopulateOptions } from 'src/dto/constants';
 
 @Injectable()
 export class AuthService {
@@ -18,20 +19,22 @@ export class AuthService {
     private readonly userModel: Model<User>,
     @InjectModel(Cart.name)
     private readonly cartModel: Model<Cart>,
+    @InjectModel(Subproduct.name)
+    private readonly subproductModel: Model<Subproduct>,
   ) {}
 
-  async login(loginUser: LoginDto): Promise<any> {
+  async login(loginUser: UserLoginDto): Promise<any> {
     try {
-      const userInDb: User = await this.userModel
-        .findOne({ email: loginUser.email })
-        .exec();
-      const userFirebase: UserRecord = await firebaseAuth.getUserByEmail(
-        loginUser.email,
-      );
+      const [userInDb, userFirebase] = await Promise.all([
+        this.userModel.findOne({ email: loginUser.user.email }),
+        firebaseAuth.getUserByEmail(loginUser.user.email),
+      ]);
 
       let cartUser: Cart;
-      if (userInDb) {
+      if (userInDb && !loginUser.cart) {
         cartUser = await this.getUserCart(userInDb._id);
+      } else {
+        cartUser = await this.saveLocalCart(loginUser.cart, userInDb._id);
       }
 
       if (
@@ -59,12 +62,12 @@ export class AuthService {
     }
   }
 
-  async register(createUser: UserDto): Promise<User> {
+  async register(createUser: UserRegisterDto): Promise<User> {
     try {
-      const userInDb = await this.userModel.findOne({
-        email: createUser.email,
-      });
-      const userFirebase = await firebaseAuth.getUserByEmail(createUser.email);
+      const [userInDb, userFirebase] = await Promise.all([
+        this.userModel.findOne({ email: createUser.user.email }),
+        firebaseAuth.getUserByEmail(createUser.user.email),
+      ]);
 
       if (!userInDb) {
         const userToSave = this.fillAndParseEntity.fillUserToObj(
@@ -111,21 +114,7 @@ export class AuthService {
     }
   }
 
-  async getUserCart(idUser: string): Promise<Cart | null> {
-    try {
-      const userCart = await this.cartModel
-        .findOne({ user: new Types.ObjectId(idUser), active: true })
-        .exec();
-      if (!userCart) {
-        return null;
-      }
-      return userCart;
-    } catch (error) {
-      throw new Error(`Failed to get user cart: ${error.message}`);
-    }
-  }
-
-  async verifyToken(token: string) {
+  async verifyToken(token: string): Promise<boolean> {
     try {
       token = token.split(' ')[1];
       const tokenValidation = await firebaseAuth.verifyIdToken(token);
@@ -137,6 +126,124 @@ export class AuthService {
     } catch (error) {
       console.error(error);
       return error;
+    }
+  }
+
+  async verifyAdminToken(token: string, user: string): Promise<boolean> {
+    try {
+      token = token.split(' ')[1];
+      const [userIsAdmin, tokenValidation] = await Promise.all([
+        await this.userModel.findById(user).select('_id admin'),
+        await firebaseAuth.verifyIdToken(token),
+      ]);
+
+      if (userIsAdmin) {
+        if (userIsAdmin.admin && tokenValidation) {
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error(error.code);
+      return false;
+    }
+  }
+
+  async saveLocalCart(cartData: CartDto, idUser: string): Promise<Cart> {
+    const cartUser = await this.cartModel
+      .findOne({ user: new Types.ObjectId(idUser), active: true })
+      .populate(CartPopulateOptions)
+      .exec();
+
+    if (!cartUser) {
+      cartData.user = new Types.ObjectId(idUser);
+      const newCart = new this.cartModel(cartData);
+
+      const cart = await this.cartModel.create(newCart);
+      const cartSaved = await this.cartModel
+        .findById(cart._id)
+        .populate(CartPopulateOptions);
+
+      Logger.log(cartSaved, 'Local cart saved');
+      return cartSaved;
+    } else {
+      let userCartUpdated: any;
+      for (const elem of cartData.subproducts) {
+        const subproduct = await this.subproductModel.findById(elem.subproduct);
+        userCartUpdated = this.updateCartProducts(
+          cartUser,
+          cartUser.subproducts,
+          subproduct,
+          elem.quantity,
+        );
+      }
+      console.log(userCartUpdated);
+      const cartUpdated = await this.cartModel
+        .findByIdAndUpdate(cartUser._id, userCartUpdated, { new: true })
+        .populate(CartPopulateOptions);
+      Logger.log(cartUpdated, 'Local cart updated');
+
+      return cartUpdated;
+    }
+  }
+
+  updateCartProducts(
+    userCart: Cart,
+    oldCartSubprod: Array<{ subproduct: Subproduct; quantity: number }>,
+    newProd: Subproduct,
+    newQuantity: number,
+  ) {
+    let newTotalP = 0,
+      newCant = 0;
+
+    const existProd = oldCartSubprod.find((elem: any) => {
+      return elem.subproduct._id.toString() === newProd._id.toString();
+    });
+
+    if (existProd) {
+      existProd.quantity += newQuantity;
+      oldCartSubprod.map((elem: any) => {
+        const subProdTotal = elem.quantity * elem.subproduct.sell_price;
+        newTotalP += subProdTotal;
+        newCant += elem.quantity;
+      });
+    } else {
+      const newSubProd: { subproduct: Subproduct; quantity: number } = {
+        subproduct: newProd,
+        quantity: newQuantity,
+      };
+      oldCartSubprod.push(newSubProd);
+      oldCartSubprod.map((elem: any) => {
+        const subProdTotal = elem.quantity * elem.subproduct.sell_price;
+        newTotalP += subProdTotal;
+        newCant += elem.quantity;
+      });
+    }
+    userCart.total_price = newTotalP;
+    userCart.total_products = newCant;
+
+    if (userCart.total_products === 0) {
+      userCart.subproducts = [];
+    }
+
+    return userCart;
+  }
+
+  async getUserCart(idUser: string): Promise<Cart | null> {
+    try {
+      const userCart = await this.cartModel
+        .findOne({ user: new Types.ObjectId(idUser), active: true })
+        .populate(CartPopulateOptions)
+        .lean();
+      if (!userCart) {
+        return null;
+      }
+      return userCart;
+    } catch (error) {
+      throw new Error(`Failed to get user cart: ${error.message}`);
     }
   }
 }

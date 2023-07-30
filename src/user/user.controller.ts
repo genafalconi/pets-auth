@@ -7,7 +7,6 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { DocumentData } from 'firebase-admin/firestore';
 import { AddressDto } from 'src/dto/address.dto';
 import { FirebaseAuthGuard } from 'src/firebase/firebase.auth.guard';
 import { UserService } from './user.service';
@@ -35,7 +34,7 @@ export class UserController {
   @Delete('/address/:idAddress')
   async removeUserAddress(
     @Param('idAddress') idAddress: string,
-  ): Promise<void> {
+  ): Promise<Address> {
     return await this.userService.removeUserAddress(idAddress);
   }
 

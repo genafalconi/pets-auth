@@ -1,10 +1,8 @@
 import firebase from 'firebase-admin';
 import { firebaseAdminConfig } from './firebaseAdmin';
-
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { firebaseClientConfig } from './firebaseAdmin';
-import 'firebase/auth'; // import the auth provider
 
 // Server
 export const firebaseApp: firebase.app.App = firebase.initializeApp({

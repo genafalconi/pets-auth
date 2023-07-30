@@ -56,12 +56,17 @@ export class UserService {
     return userAddresses;
   }
 
-  async removeUserAddress(idAddress: string): Promise<void> {
-    const addressInDb: Address = await this.addressModel.findOneAndDelete({
-      _id: idAddress,
-    });
+  async removeUserAddress(idAddress: string): Promise<Address> {
+    const addressInDb: Address = await this.addressModel.findByIdAndDelete(
+      new Types.ObjectId(idAddress),
+    );
     if (addressInDb) {
+      await this.userModel.findByIdAndUpdate(addressInDb.user, {
+        $pull: { addresses: addressInDb._id },
+      });
+
       Logger.log(addressInDb, 'Address deleted');
+      return addressInDb;
     }
   }
 
@@ -76,6 +81,35 @@ export class UserService {
   async getUserOrders(idUser: string): Promise<User[]> {
     return await this.userModel
       .find({ _id: new Types.ObjectId(idUser) })
+      .populate({
+        path: 'orders',
+        model: 'Order',
+        options: { sort: { createdAt: 'desc' } },
+        populate: [
+          {
+            path: 'offer',
+            model: 'Offer',
+            select: '_id date',
+          },
+          {
+            path: 'cart',
+            model: 'Cart',
+            populate: [
+              {
+                path: 'subproducts.subproduct',
+                model: 'Subproduct',
+                select: '_id sell_price size',
+                populate: {
+                  path: 'product',
+                  model: 'Product',
+                  select: '_id name',
+                },
+              },
+            ],
+            select: '_id total_price total_products subproducts',
+          },
+        ],
+      })
       .lean();
   }
 }
