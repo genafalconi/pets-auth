@@ -19,7 +19,7 @@ import { UserModule } from './user/user.module';
         retryAttempts: 2,
         retryDelay: 1000,
       }),
-      inject: [ConfigService]
+      inject: [ConfigService],
     }),
     AuthModule,
     UserModule,

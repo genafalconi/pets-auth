@@ -14,6 +14,6 @@ export const CartPopulateOptions: Array<PopulateObject> = [
       path: 'product',
       model: 'Product',
       select: '_id name image',
-    }
-  }
-]
+    },
+  },
+];

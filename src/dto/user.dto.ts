@@ -1,4 +1,4 @@
-import { CartDto } from "./login.dto";
+import { CartDto } from './login.dto';
 
 export class UserDto {
   id: string;
@@ -8,6 +8,6 @@ export class UserDto {
 }
 
 export class UserRegisterDto {
-  user: UserDto
-  cart?: CartDto
+  user: UserDto;
+  cart?: CartDto;
 }

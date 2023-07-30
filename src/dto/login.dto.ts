@@ -1,5 +1,5 @@
-import { Types } from "mongoose";
-import { Subproduct } from "src/schemas/subprod.schema";
+import { Types } from 'mongoose';
+import { Subproduct } from 'src/schemas/subprod.schema';
 
 export class LoginDto {
   email: string;
@@ -16,6 +16,6 @@ export class CartDto {
 }
 
 export class UserLoginDto {
-  user: LoginDto
-  cart?: CartDto
+  user: LoginDto;
+  cart?: CartDto;
 }

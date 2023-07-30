@@ -21,14 +21,14 @@ export class AuthService {
     private readonly cartModel: Model<Cart>,
     @InjectModel(Subproduct.name)
     private readonly subproductModel: Model<Subproduct>,
-  ) { }
+  ) {}
 
   async login(loginUser: UserLoginDto): Promise<any> {
     try {
       const [userInDb, userFirebase] = await Promise.all([
         this.userModel.findOne({ email: loginUser.user.email }),
-        firebaseAuth.getUserByEmail(loginUser.user.email)
-      ])
+        firebaseAuth.getUserByEmail(loginUser.user.email),
+      ]);
 
       let cartUser: Cart;
       if (userInDb && !loginUser.cart) {
@@ -66,8 +66,8 @@ export class AuthService {
     try {
       const [userInDb, userFirebase] = await Promise.all([
         this.userModel.findOne({ email: createUser.user.email }),
-        firebaseAuth.getUserByEmail(createUser.user.email)
-      ])
+        firebaseAuth.getUserByEmail(createUser.user.email),
+      ]);
 
       if (!userInDb) {
         const userToSave = this.fillAndParseEntity.fillUserToObj(
@@ -152,11 +152,9 @@ export class AuthService {
     }
   }
 
-  async saveLocalCart(
-    cartData: CartDto,
-    idUser: string
-  ): Promise<Cart> {
-    const cartUser = await this.cartModel.findOne({ user: new Types.ObjectId(idUser), active: true })
+  async saveLocalCart(cartData: CartDto, idUser: string): Promise<Cart> {
+    const cartUser = await this.cartModel
+      .findOne({ user: new Types.ObjectId(idUser), active: true })
       .populate(CartPopulateOptions)
       .exec();
 
@@ -164,8 +162,10 @@ export class AuthService {
       cartData.user = new Types.ObjectId(idUser);
       const newCart = new this.cartModel(cartData);
 
-      const cart = await this.cartModel.create(newCart)
-      const cartSaved = await this.cartModel.findById(cart._id).populate(CartPopulateOptions)
+      const cart = await this.cartModel.create(newCart);
+      const cartSaved = await this.cartModel
+        .findById(cart._id)
+        .populate(CartPopulateOptions);
 
       Logger.log(cartSaved, 'Local cart saved');
       return cartSaved;
@@ -177,15 +177,13 @@ export class AuthService {
           cartUser,
           cartUser.subproducts,
           subproduct,
-          elem.quantity
+          elem.quantity,
         );
       }
-      console.log(userCartUpdated)
-      const cartUpdated = await this.cartModel.findByIdAndUpdate(
-        cartUser._id,
-        userCartUpdated,
-        { new: true }
-      ).populate(CartPopulateOptions);
+      console.log(userCartUpdated);
+      const cartUpdated = await this.cartModel
+        .findByIdAndUpdate(cartUser._id, userCartUpdated, { new: true })
+        .populate(CartPopulateOptions);
       Logger.log(cartUpdated, 'Local cart updated');
 
       return cartUpdated;

@@ -14,7 +14,7 @@ export class UserService {
     private readonly addressModel: Model<Address>,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
-  ) { }
+  ) {}
 
   async createUserAddress(
     idUser: string,
@@ -35,7 +35,7 @@ export class UserService {
       await this.userModel.updateOne(
         { _id: idUser },
         { $push: { addresses: addressSaved._id } },
-      )
+      );
 
       Logger.log(addressSaved, 'User address creado');
       return addressSaved;
@@ -57,12 +57,13 @@ export class UserService {
   }
 
   async removeUserAddress(idAddress: string): Promise<Address> {
-    const addressInDb: Address = await this.addressModel.findByIdAndDelete(new Types.ObjectId(idAddress));
+    const addressInDb: Address = await this.addressModel.findByIdAndDelete(
+      new Types.ObjectId(idAddress),
+    );
     if (addressInDb) {
-      await this.userModel.findByIdAndUpdate(
-        addressInDb.user,
-        { $pull: { addresses: addressInDb._id } }
-      );
+      await this.userModel.findByIdAndUpdate(addressInDb.user, {
+        $pull: { addresses: addressInDb._id },
+      });
 
       Logger.log(addressInDb, 'Address deleted');
       return addressInDb;
