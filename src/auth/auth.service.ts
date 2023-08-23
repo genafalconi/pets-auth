@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CartDto, LoginDto, UserLoginDto } from '../dto/login.dto';
 import { UserRegisterDto } from '../dto/user.dto';
 import { firebaseAuth, firebaseClientAuth } from '../firebase/firebase.app';
-import { ParseandFillEntity } from 'src/helpers/parseandFillEntity';
+import { ParseAndFillEntity } from 'src/helpers/parseandFillEntity';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from 'src/schemas/user.schema';
@@ -14,14 +14,14 @@ import { CartPopulateOptions } from 'src/dto/constants';
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly fillAndParseEntity: ParseandFillEntity,
+    private readonly fillAndParseRegister: ParseAndFillEntity,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
     @InjectModel(Cart.name)
     private readonly cartModel: Model<Cart>,
     @InjectModel(Subproduct.name)
     private readonly subproductModel: Model<Subproduct>,
-  ) {}
+  ) { }
 
   async login(loginUser: UserLoginDto): Promise<any> {
     try {
@@ -42,7 +42,7 @@ export class AuthService {
         userFirebase &&
         userFirebase.providerData[0].providerId === 'google.com'
       ) {
-        const userToSave: User = this.fillAndParseEntity.fillUserToObj(
+        const userToSave: User = this.fillAndParseRegister.fillUserToLogin(
           userFirebase,
           loginUser,
           this.userModel,
@@ -70,7 +70,7 @@ export class AuthService {
       ]);
 
       if (!userInDb) {
-        const userToSave = this.fillAndParseEntity.fillUserToObj(
+        const userToSave = this.fillAndParseRegister.fillUserToRegister(
           userFirebase,
           createUser,
           this.userModel,
@@ -117,9 +117,11 @@ export class AuthService {
   async verifyToken(token: string): Promise<boolean> {
     try {
       token = token.split(' ')[1];
-      const tokenValidation = await firebaseAuth.verifyIdToken(token);
-      if (tokenValidation) {
-        return true;
+      if (token !== 'null') {
+        const tokenValidation = await firebaseAuth.verifyIdToken(token);
+        if (tokenValidation) {
+          return true;
+        }
       } else {
         return false;
       }

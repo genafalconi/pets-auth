@@ -3,7 +3,7 @@ import { CartDto } from './login.dto';
 export class UserDto {
   id: string;
   email: string;
-  fullName: string;
+  full_name: string;
   phone: string;
 }
 

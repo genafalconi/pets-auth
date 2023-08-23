@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ConfigModule } from '@nestjs/config';
 import { AuthController } from './auth.controller';
-import { ParseandFillEntity } from 'src/helpers/parseandFillEntity';
+import { ParseAndFillEntity } from 'src/helpers/parseandFillEntity';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from 'src/schemas/user.schema';
 import { Cart, CartSchema } from 'src/schemas/cart.schema';
@@ -26,6 +26,6 @@ import { Order, OrderSchema } from 'src/schemas/order.schema';
     ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, ParseandFillEntity],
+  providers: [AuthService, ParseAndFillEntity],
 })
 export class AuthModule {}
