@@ -3,18 +3,18 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Address } from '../schemas/address.schema';
 import { AddressDto } from '../dto/address.dto';
-import { ParseandFillEntity } from 'src/helpers/parseandFillEntity';
+import { ParseAndFillEntity } from 'src/helpers/parseandFillEntity';
 import { User } from 'src/schemas/user.schema';
 
 @Injectable()
 export class UserService {
   constructor(
-    private readonly parseAddress: ParseandFillEntity,
+    private readonly parseAddress: ParseAndFillEntity,
     @InjectModel(Address.name)
     private readonly addressModel: Model<Address>,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
-  ) {}
+  ) { }
 
   async createUserAddress(
     idUser: string,
@@ -80,7 +80,7 @@ export class UserService {
 
   async getUserOrders(idUser: string): Promise<User[]> {
     return await this.userModel
-      .find({ _id: new Types.ObjectId(idUser) })
+      .findOne({ _id: new Types.ObjectId(idUser) })
       .populate({
         path: 'orders',
         model: 'Order',
@@ -96,7 +96,7 @@ export class UserService {
             model: 'Cart',
             populate: [
               {
-                path: 'subproducts.subproduct',
+                path: 'subproducts.subproduct', 
                 model: 'Subproduct',
                 select: '_id sell_price size',
                 populate: {

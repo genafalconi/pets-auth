@@ -1,20 +1,22 @@
+import { UserRecord } from 'firebase-admin/auth';
 import { Model, Types } from 'mongoose';
 import { AddressDto } from 'src/dto/address.dto';
+import { UserRegisterDto } from 'src/dto/user.dto';
 import { Address } from 'src/schemas/address.schema';
 import { User } from 'src/schemas/user.schema';
 
-export class ParseandFillEntity {
-  fillUserToObj(
-    dataFirebase: any,
-    dataForm: any,
+export class ParseAndFillEntity {
+  fillUserToRegister(
+    dataFirebase: UserRecord,
+    dataForm: UserRegisterDto,
     userModel: Model<User>,
   ): User {
     const userToSave = new userModel({
       email: dataFirebase.email,
-      full_name: dataForm.fullName,
+      full_name: dataForm.user.full_name,
       active: true,
       admin: false,
-      phone: dataForm.phone,
+      phone: dataForm.user.phone,
       provider_login: dataFirebase.providerData[0].providerId,
       firebase_id: dataFirebase.uid,
     });
@@ -40,5 +42,23 @@ export class ParseandFillEntity {
     });
 
     return addressToSave;
+  }
+
+  fillUserToLogin(
+    dataFirebase: UserRecord,
+    dataForm: any,
+    userModel: Model<User>,
+  ): User {
+    const userToSave = new userModel({
+      email: dataFirebase.email,
+      full_name: dataForm.displayName,
+      active: true,
+      admin: false,
+      phone: dataForm.phoneNumber,
+      provider_login: dataFirebase.providerData[0].providerId,
+      firebase_id: dataFirebase.uid,
+    });
+
+    return userToSave;
   }
 }
