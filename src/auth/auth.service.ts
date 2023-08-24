@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { CartDto, LoginDto, UserLoginDto } from '../dto/login.dto';
+import { CartDto, LoginDto, UserLoginDto, UserSesionDto } from '../dto/login.dto';
 import { UserRegisterDto } from '../dto/user.dto';
 import { firebaseAuth, firebaseClientAuth } from '../firebase/firebase.app';
 import { ParseAndFillEntity } from 'src/helpers/parseandFillEntity';
@@ -10,6 +10,7 @@ import { Model, Types } from 'mongoose';
 import { Cart } from 'src/schemas/cart.schema';
 import { Subproduct } from 'src/schemas/subprod.schema';
 import { CartPopulateOptions } from 'src/dto/constants';
+import { SecurityDto } from 'src/dto/security.dto';
 
 @Injectable()
 export class AuthService {
@@ -23,7 +24,7 @@ export class AuthService {
     private readonly subproductModel: Model<Subproduct>,
   ) { }
 
-  async login(loginUser: UserLoginDto): Promise<any> {
+  async login(loginUser: UserLoginDto): Promise<UserSesionDto> {
     try {
       const [userInDb, userFirebase] = await Promise.all([
         this.userModel.findOne({ email: loginUser.user.email }),
@@ -62,7 +63,7 @@ export class AuthService {
     }
   }
 
-  async register(createUser: UserRegisterDto): Promise<User> {
+  async register(createUser: UserRegisterDto): Promise<UserSesionDto> {
     try {
       const [userInDb, userFirebase] = await Promise.all([
         this.userModel.findOne({ email: createUser.user.email }),
@@ -77,8 +78,15 @@ export class AuthService {
         );
         const userSaved = await this.userModel.create(userToSave);
         Logger.log(JSON.stringify(userSaved), 'User registered');
+ 
+        let cartUser: Cart;
+        if (userInDb && !createUser.cart) {
+          cartUser = await this.getUserCart(userSaved._id);
+        } else {
+          cartUser = await this.saveLocalCart(createUser.cart, userSaved._id);
+        }
 
-        return userSaved;
+        return { user: userSaved, cart: cartUser ? cartUser : {} };
       }
 
       if (
@@ -90,12 +98,12 @@ export class AuthService {
       } else {
         throw new Error('Hay un error al registrarse');
       }
-    } catch (error) {
+    } catch (error) { 
       throw new Error(`Failed to register user: ${error.message}`);
     }
   }
 
-  async getToken(loginDto: LoginDto) {
+  async getToken(loginDto: LoginDto): Promise<SecurityDto> {
     const { email, password } = loginDto;
     try {
       const userCredential = await signInWithEmailAndPassword(
