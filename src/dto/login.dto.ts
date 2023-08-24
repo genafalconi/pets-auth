@@ -1,5 +1,7 @@
 import { Types } from 'mongoose';
+import { Cart } from 'src/schemas/cart.schema';
 import { Subproduct } from 'src/schemas/subprod.schema';
+import { User } from 'src/schemas/user.schema';
 
 export class LoginDto {
   email: string;
@@ -18,4 +20,9 @@ export class CartDto {
 export class UserLoginDto {
   user: LoginDto;
   cart?: CartDto;
+}
+
+export class UserSesionDto {
+  user: User;
+  cart?: Cart | {};
 }
