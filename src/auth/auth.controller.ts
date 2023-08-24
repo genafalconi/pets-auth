@@ -11,7 +11,6 @@ import { CustomRequest } from 'src/firebase/customRequest';
 import { LoginDto, UserLoginDto, UserSesionDto } from '../dto/login.dto';
 import { UserRegisterDto } from '../dto/user.dto';
 import { AuthService } from './auth.service';
-import { User } from 'src/schemas/user.schema';
 import { SecurityDto } from 'src/dto/security.dto';
 
 @Controller('auth')

@@ -24,5 +24,5 @@ export class UserLoginDto {
 
 export class UserSesionDto {
   user: User;
-  cart?: Cart | {};
+  cart?: Cart | object;
 }
