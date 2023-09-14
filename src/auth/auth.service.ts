@@ -78,7 +78,7 @@ export class AuthService {
         );
         const userSaved = await this.userModel.create(userToSave);
         Logger.log(JSON.stringify(userSaved), 'User registered');
- 
+
         let cartUser: Cart;
         if (userInDb && !createUser.cart) {
           cartUser = await this.getUserCart(userSaved._id);
@@ -98,7 +98,7 @@ export class AuthService {
       } else {
         throw new Error('Hay un error al registrarse');
       }
-    } catch (error) { 
+    } catch (error) {
       throw new Error(`Failed to register user: ${error.message}`);
     }
   }
@@ -135,6 +135,7 @@ export class AuthService {
       }
     } catch (error) {
       console.error(error);
+      if (error.code === 'auth/id-token-expired') return false
       return error;
     }
   }
