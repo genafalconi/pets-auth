@@ -9,7 +9,7 @@ export const CartPopulateOptions: Array<PopulateObject> = [
   {
     path: 'subproducts.subproduct',
     model: 'Subproduct',
-    select: '_id product sell_price buy_price size',
+    select: '_id product sell_price buy_price size sale_price highlight',
     populate: {
       path: 'product',
       model: 'Product',
