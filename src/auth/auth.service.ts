@@ -217,17 +217,20 @@ export class AuthService {
     if (existProd) {
       existProd.quantity += newQuantity;
       oldCartSubprod.map((elem: any) => {
+        if (elem.subproduct.highlight) elem.subproduct.sell_price = elem.subproduct.sale_price
         const subProdTotal = elem.quantity * elem.subproduct.sell_price;
         newTotalP += subProdTotal;
         newCant += elem.quantity;
       });
     } else {
+      if (newProd.highlight) newProd.sell_price = newProd.sale_price
       const newSubProd: { subproduct: Subproduct; quantity: number } = {
         subproduct: newProd,
         quantity: newQuantity,
       };
       oldCartSubprod.push(newSubProd);
       oldCartSubprod.map((elem: any) => {
+        if (elem.subproduct.highlight) elem.subproduct.sell_price = elem.subproduct.sale_price
         const subProdTotal = elem.quantity * elem.subproduct.sell_price;
         newTotalP += subProdTotal;
         newCant += elem.quantity;
