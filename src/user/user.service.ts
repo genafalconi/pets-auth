@@ -56,6 +56,19 @@ export class UserService {
     return userAddresses;
   }
 
+  async editUserAddress(addressData: AddressDto, idUser: string): Promise<Address[]> {
+    const [edit, userAddresses] = await Promise.all([
+      this.addressModel.findByIdAndUpdate(
+        new Types.ObjectId(addressData.id),
+        addressData,
+        { new: true }
+      ),
+      this.addressModel.find({ user: new Types.ObjectId(idUser) })
+    ])
+
+    return userAddresses
+  }
+
   async removeUserAddress(idAddress: string): Promise<Address> {
     const addressInDb: Address = await this.addressModel.findByIdAndDelete(
       new Types.ObjectId(idAddress),
@@ -96,7 +109,7 @@ export class UserService {
             model: 'Cart',
             populate: [
               {
-                path: 'subproducts.subproduct', 
+                path: 'subproducts.subproduct',
                 model: 'Subproduct',
                 select: '_id sell_price size',
                 populate: {
