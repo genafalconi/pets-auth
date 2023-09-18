@@ -77,16 +77,13 @@ export class AuthService {
           this.userModel,
         );
         const userSaved = await this.userModel.create(userToSave);
-        Logger.log(JSON.stringify(userSaved), 'User registered');
+        Logger.log(userSaved, 'User registered');
 
-        let cartUser: Cart;
-        if (userInDb && !createUser.cart) {
-          cartUser = await this.getUserCart(userSaved._id);
-        } else {
+        let cartUser: Cart = {} as Cart
+        if (createUser.cart) {
           cartUser = await this.saveLocalCart(createUser.cart, userSaved._id);
         }
-
-        return { user: userSaved, cart: cartUser ? cartUser : {} };
+        return { user: userSaved, cart: cartUser };
       }
 
       if (
@@ -248,6 +245,7 @@ export class AuthService {
 
   async getUserCart(idUser: string): Promise<Cart | null> {
     try {
+      console.log(idUser)
       const userCart = await this.cartModel
         .findOne({ user: new Types.ObjectId(idUser), active: true })
         .populate(CartPopulateOptions)
