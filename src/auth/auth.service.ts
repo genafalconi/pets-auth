@@ -9,7 +9,7 @@ import { User } from 'src/schemas/user.schema';
 import { Model, Types } from 'mongoose';
 import { Cart } from 'src/schemas/cart.schema';
 import { Subproduct } from 'src/schemas/subprod.schema';
-import { CartPopulateOptions } from 'src/dto/constants';
+import { CartPopulateOptions, GOOGLE_PROVIDER_ID } from 'src/dto/constants';
 import { SecurityDto } from 'src/dto/security.dto';
 
 @Injectable()
@@ -22,7 +22,7 @@ export class AuthService {
     private readonly cartModel: Model<Cart>,
     @InjectModel(Subproduct.name)
     private readonly subproductModel: Model<Subproduct>,
-  ) { }
+  ) {}
 
   async login(loginUser: UserLoginDto): Promise<UserSesionDto> {
     try {
@@ -31,35 +31,36 @@ export class AuthService {
         firebaseAuth.getUserByEmail(loginUser.user.email),
       ]);
 
-      let cartUser: Cart;
-      if (userInDb && !loginUser.cart) {
-        cartUser = await this.getUserCart(userInDb._id);
-      } else {
-        cartUser = await this.saveLocalCart(loginUser.cart, userInDb._id);
+      if (!userInDb && !userFirebase) {
+        throw new HttpException('No existe el usuario', HttpStatus.BAD_REQUEST);
       }
 
-      if (
-        !userInDb &&
-        userFirebase &&
-        userFirebase.providerData[0].providerId === 'google.com'
-      ) {
+      let cartUser: Cart;
+
+      if (userInDb && userFirebase && !loginUser.cart) {
+        cartUser = await this.getUserCart(userInDb._id);
+      } else {
+        if (loginUser.cart) {
+          cartUser = await this.saveLocalCart(loginUser.cart, userInDb._id);
+        }
+      }
+
+      if (!userInDb && userFirebase && userFirebase.providerData[0].providerId === GOOGLE_PROVIDER_ID) {
         const userToSave: User = this.fillAndParseRegister.fillUserToLogin(
           userFirebase,
           loginUser,
           this.userModel,
         );
-        const googleUser = await this.userModel.create(userToSave);
-        Logger.log('User logged', googleUser);
+
+        const googleUser = await this.createUserAndLog(userToSave);
+
         return { user: googleUser, cart: cartUser ? cartUser : {} };
-      }
-      if (!userInDb && !userFirebase) {
-        throw new HttpException('No existe el usuario', HttpStatus.NOT_FOUND);
       }
 
       Logger.log('User logged', userInDb);
       return { user: userInDb, cart: cartUser ? cartUser : {} };
     } catch (error) {
-      return error;
+      throw new Error(`Failed to log in user: ${error.message}`);
     }
   }
 
@@ -76,21 +77,16 @@ export class AuthService {
           createUser,
           this.userModel,
         );
-        const userSaved = await this.userModel.create(userToSave);
-        Logger.log(userSaved, 'User registered');
+        const userSaved = await this.createUserAndLog(userToSave);
 
-        let cartUser: Cart = {} as Cart
+        let cartUser: Cart = {} as Cart;
         if (createUser.cart) {
           cartUser = await this.saveLocalCart(createUser.cart, userSaved._id);
         }
         return { user: userSaved, cart: cartUser };
       }
 
-      if (
-        userInDb &&
-        userFirebase &&
-        userFirebase.providerData[0].providerId !== 'google.com'
-      ) {
+      if (userInDb && userFirebase && userFirebase.providerData[0].providerId !== 'google.com') {
         throw new Error('Ya existe una cuenta con ese email, logueate');
       } else {
         throw new Error('Hay un error al registrarse');
@@ -108,14 +104,13 @@ export class AuthService {
         email,
         password,
       );
-      // Get the ID token for the signed-in user
+
       const idToken = await userCredential.user.getIdToken();
       const refreshToken = userCredential.user.refreshToken;
 
       return { access_token: idToken, refresh_token: refreshToken };
     } catch (error) {
-      console.error(error);
-      return error;
+      throw new Error(`Failed to get token: ${error.message}`);
     }
   }
 
@@ -124,16 +119,12 @@ export class AuthService {
       token = token.split(' ')[1];
       if (token !== 'null') {
         const tokenValidation = await firebaseAuth.verifyIdToken(token);
-        if (tokenValidation) {
-          return true;
-        }
+        return !!tokenValidation;
       } else {
         return false;
       }
     } catch (error) {
-      console.error(error);
-      if (error.code === 'auth/id-token-expired') return false
-      return error;
+      throw new Error(`Failed to verify token: ${error.message}`);
     }
   }
 
@@ -141,22 +132,17 @@ export class AuthService {
     try {
       token = token.split(' ')[1];
       const [userIsAdmin, tokenValidation] = await Promise.all([
-        await this.userModel.findById(user).select('_id admin'),
-        await firebaseAuth.verifyIdToken(token),
+        this.userModel.findById(user).select('_id admin'),
+        firebaseAuth.verifyIdToken(token),
       ]);
 
-      if (userIsAdmin) {
-        if (userIsAdmin.admin && tokenValidation) {
-          return true;
-        } else {
-          return false;
-        }
+      if (userIsAdmin && userIsAdmin.admin && tokenValidation) {
+        return true;
       } else {
         return false;
       }
     } catch (error) {
-      console.error(error.code);
-      return false;
+      throw new Error(`Failed to verify admin token: ${error.message}`);
     }
   }
 
@@ -178,22 +164,17 @@ export class AuthService {
       Logger.log(cartSaved, 'Local cart saved');
       return cartSaved;
     } else {
-      let userCartUpdated: any;
-      for (const elem of cartData.subproducts) {
-        const subproduct = await this.subproductModel.findById(elem.subproduct);
-        userCartUpdated = this.updateCartProducts(
-          cartUser,
-          cartUser.subproducts,
-          subproduct,
-          elem.quantity,
-        );
-      }
-      console.log(userCartUpdated);
+      const userCartUpdated = this.updateCartProducts(
+        cartUser,
+        cartUser.subproducts,
+        cartData.subproducts
+      );
+
       const cartUpdated = await this.cartModel
         .findByIdAndUpdate(cartUser._id, userCartUpdated, { new: true })
         .populate(CartPopulateOptions);
-      Logger.log(cartUpdated, 'Local cart updated');
 
+      Logger.log(cartUpdated, 'Local cart updated');
       return cartUpdated;
     }
   }
@@ -201,43 +182,37 @@ export class AuthService {
   updateCartProducts(
     userCart: Cart,
     oldCartSubprod: Array<{ subproduct: Subproduct; quantity: number }>,
-    newProd: Subproduct,
-    newQuantity: number,
+    newSubproducts: Array<{ subproduct: Subproduct; quantity: number }>
   ) {
-    let newTotalP = 0,
-      newCant = 0;
+    const updatedSubproducts = oldCartSubprod.slice();
 
-    const existProd = oldCartSubprod.find((elem: any) => {
-      return elem.subproduct._id.toString() === newProd._id.toString();
-    });
+    for (const newElem of newSubproducts) {
+      const existProd = updatedSubproducts.find((elem: any) => {
+        return elem.subproduct._id.toString() === newElem.subproduct._id.toString();
+      });
 
-    if (existProd) {
-      existProd.quantity += newQuantity;
-      oldCartSubprod.map((elem: any) => {
-        if (elem.subproduct.highlight) elem.subproduct.sell_price = elem.subproduct.sale_price
-        const subProdTotal = elem.quantity * elem.subproduct.sell_price;
-        newTotalP += subProdTotal;
-        newCant += elem.quantity;
-      });
-    } else {
-      if (newProd.highlight) newProd.sell_price = newProd.sale_price
-      const newSubProd: { subproduct: Subproduct; quantity: number } = {
-        subproduct: newProd,
-        quantity: newQuantity,
-      };
-      oldCartSubprod.push(newSubProd);
-      oldCartSubprod.map((elem: any) => {
-        if (elem.subproduct.highlight) elem.subproduct.sell_price = elem.subproduct.sale_price
-        const subProdTotal = elem.quantity * elem.subproduct.sell_price;
-        newTotalP += subProdTotal;
-        newCant += elem.quantity;
-      });
+      if (existProd) {
+        existProd.quantity += newElem.quantity;
+      } else {
+        updatedSubproducts.push(newElem);
+      }
     }
+
+    const [newTotalP, newCant] = updatedSubproducts.reduce(([totalP, cant], elem) => {
+      if (elem.subproduct.highlight) {
+        elem.subproduct.sell_price = elem.subproduct.sale_price;
+      }
+      const subProdTotal = elem.quantity * elem.subproduct.sell_price;
+      return [totalP + subProdTotal, cant + elem.quantity];
+    }, [0, 0]);
+
     userCart.total_price = newTotalP;
     userCart.total_products = newCant;
 
     if (userCart.total_products === 0) {
       userCart.subproducts = [];
+    } else {
+      userCart.subproducts = updatedSubproducts;
     }
 
     return userCart;
@@ -245,17 +220,19 @@ export class AuthService {
 
   async getUserCart(idUser: string): Promise<Cart | null> {
     try {
-      console.log(idUser)
       const userCart = await this.cartModel
         .findOne({ user: new Types.ObjectId(idUser), active: true })
         .populate(CartPopulateOptions)
         .lean();
-      if (!userCart) {
-        return null;
-      }
-      return userCart;
+      return userCart || null;
     } catch (error) {
       throw new Error(`Failed to get user cart: ${error.message}`);
     }
+  }
+
+  private async createUserAndLog(userToSave: User): Promise<User> {
+    const userSaved = await this.userModel.create(userToSave);
+    Logger.log(userSaved, 'User registered');
+    return userSaved;
   }
 }
