@@ -1,6 +1,7 @@
 import { UserRecord } from 'firebase-admin/auth';
 import { Model, Types } from 'mongoose';
 import { AddressDto } from 'src/dto/address.dto';
+import { UserLoginDto } from 'src/dto/login.dto';
 import { UserRegisterDto } from 'src/dto/user.dto';
 import { Address } from 'src/schemas/address.schema';
 import { User } from 'src/schemas/user.schema';
@@ -46,15 +47,16 @@ export class ParseAndFillEntity {
 
   fillUserToLogin(
     dataFirebase: UserRecord,
-    dataForm: any,
+    dataForm: UserLoginDto,
     userModel: Model<User>,
   ): User {
+    console.log(dataFirebase, dataForm, userModel)
     const userToSave = new userModel({
       email: dataFirebase.email,
-      full_name: dataForm.displayName,
+      full_name: dataFirebase.displayName,
       active: true,
       admin: false,
-      phone: dataForm.phoneNumber,
+      phone: dataFirebase.phoneNumber,
       provider_login: dataFirebase.providerData[0].providerId,
       firebase_id: dataFirebase.uid,
     });

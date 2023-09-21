@@ -17,3 +17,5 @@ export const CartPopulateOptions: Array<PopulateObject> = [
     },
   },
 ];
+
+export const GOOGLE_PROVIDER_ID = 'google.com'
