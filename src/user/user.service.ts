@@ -59,7 +59,7 @@ export class UserService {
   async editUserAddress(addressData: AddressDto, idUser: string): Promise<Address[]> {
     const [edit, userAddresses] = await Promise.all([
       this.addressModel.findByIdAndUpdate(
-        new Types.ObjectId(addressData.id),
+        new Types.ObjectId(addressData._id),
         addressData,
         { new: true }
       ),
@@ -70,9 +70,7 @@ export class UserService {
   }
 
   async removeUserAddress(idAddress: string): Promise<Address> {
-    const addressInDb: Address = await this.addressModel.findByIdAndDelete(
-      new Types.ObjectId(idAddress),
-    );
+    const addressInDb: Address = await this.addressModel.findByIdAndDelete(new Types.ObjectId(idAddress));
     if (addressInDb) {
       await this.userModel.findByIdAndUpdate(addressInDb.user, {
         $pull: { addresses: addressInDb._id },
