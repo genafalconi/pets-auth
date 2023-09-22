@@ -1,5 +1,5 @@
 export class AddressDto {
-  id: string;
+  _id: string;
   street: string;
   number: number;
   floor: string;
@@ -7,4 +7,8 @@ export class AddressDto {
   city: string;
   province: string;
   extra: string;
+}
+
+export class DeleteAddressDto {
+  _id: string
 }
