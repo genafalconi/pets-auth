@@ -113,7 +113,7 @@ export class UserService {
                 populate: {
                   path: 'product',
                   model: 'Product',
-                  select: '_id name',
+                  select: '_id name image',
                 },
               },
             ],
