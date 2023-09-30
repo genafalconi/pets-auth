@@ -22,7 +22,7 @@ export class AuthService {
     private readonly cartModel: Model<Cart>,
     @InjectModel(Subproduct.name)
     private readonly subproductModel: Model<Subproduct>,
-  ) {}
+  ) { }
 
   async login(loginUser: UserLoginDto): Promise<UserSesionDto> {
     try {
@@ -60,7 +60,7 @@ export class AuthService {
       Logger.log('User logged', userInDb);
       return { user: userInDb, cart: cartUser ? cartUser : {} };
     } catch (error) {
-      throw new Error(`Failed to log in user: ${error.message}`);
+      throw new HttpException(`Failed to log in user: ${error.message}`, HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -87,9 +87,9 @@ export class AuthService {
       }
 
       if (userInDb && userFirebase && userFirebase.providerData[0].providerId !== 'google.com') {
-        throw new Error('Ya existe una cuenta con ese email, logueate');
+        throw new HttpException('Ya existe una cuenta con ese email, logueate', HttpStatus.BAD_REQUEST);
       } else {
-        throw new Error('Hay un error al registrarse');
+        throw new HttpException('Hay un error al registrarse', HttpStatus.BAD_REQUEST);
       }
     } catch (error) {
       throw new Error(`Failed to register user: ${error.message}`);
