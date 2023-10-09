@@ -20,8 +20,6 @@ export class AuthService {
     private readonly userModel: Model<User>,
     @InjectModel(Cart.name)
     private readonly cartModel: Model<Cart>,
-    @InjectModel(Subproduct.name)
-    private readonly subproductModel: Model<Subproduct>,
   ) { }
 
   async login(loginUser: UserLoginDto): Promise<UserSesionDto> {
@@ -181,8 +179,8 @@ export class AuthService {
 
   updateCartProducts(
     userCart: Cart,
-    oldCartSubprod: Array<{ subproduct: Subproduct; quantity: number }>,
-    newSubproducts: Array<{ subproduct: Subproduct; quantity: number }>
+    oldCartSubprod: Array<{ subproduct: Subproduct; quantity: number, profit: number }>,
+    newSubproducts: Array<{ subproduct: Subproduct; quantity: number, profit: number }>
   ) {
     const updatedSubproducts = oldCartSubprod.slice();
 

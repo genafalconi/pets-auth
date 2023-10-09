@@ -50,7 +50,6 @@ export class ParseAndFillEntity {
     dataForm: UserLoginDto,
     userModel: Model<User>,
   ): User {
-    console.log(dataFirebase, dataForm, userModel)
     const userToSave = new userModel({
       email: dataFirebase.email,
       full_name: dataFirebase.displayName,

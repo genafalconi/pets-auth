@@ -5,6 +5,7 @@ import { Address } from '../schemas/address.schema';
 import { AddressDto } from '../dto/address.dto';
 import { ParseAndFillEntity } from 'src/helpers/parseandFillEntity';
 import { User } from 'src/schemas/user.schema';
+import { Cart } from 'src/schemas/cart.schema';
 
 @Injectable()
 export class UserService {
@@ -14,6 +15,8 @@ export class UserService {
     private readonly addressModel: Model<Address>,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
+    @InjectModel(Cart.name)
+    private readonly cartModel: Model<Cart>
   ) { }
 
   async createUserAddress(
@@ -119,8 +122,46 @@ export class UserService {
             ],
             select: '_id total_price total_products subproducts',
           },
+          {
+            path: 'products',
+            model: 'SubproductBought',
+            populate: {
+              path: 'subproduct',
+              model: 'Subproduct',
+              select: '_id size stock',
+              populate: {
+                path: 'product',
+                model: 'Product',
+                select: '_id name image',
+              },
+            },
+          }
         ],
       })
       .lean();
   }
+
+  async getReorderCart(cartId: string): Promise<Cart> {
+    const reorderCart = await this.cartModel.findById(new Types.ObjectId(cartId))
+      .populate({
+        path: 'subproducts.subproduct',
+        model: 'Subproduct',
+        select: '_id sell_price sale_price buy_price size highlight',
+        populate: {
+          path: 'product',
+          model: 'Product',
+          select: '_id name image',
+        }
+      })
+
+    let totalPrice: number = 0
+    reorderCart.subproducts.forEach((elem) => {
+      const price = elem.subproduct.highlight ? elem.subproduct.sale_price : elem.subproduct.sell_price
+      elem.profit = (price - elem.subproduct.buy_price) * elem.quantity
+      totalPrice += price * elem.quantity
+    })
+    reorderCart.total_price = totalPrice
+    return reorderCart
+  }
+
 }

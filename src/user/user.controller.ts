@@ -14,6 +14,7 @@ import { FirebaseAuthGuard } from 'src/firebase/firebase.auth.guard';
 import { UserService } from './user.service';
 import { Address } from 'src/schemas/address.schema';
 import { User } from 'src/schemas/user.schema';
+import { Cart } from 'src/schemas/cart.schema';
 
 // @UseGuards(FirebaseAuthGuard)
 @Controller('user')
@@ -21,10 +22,7 @@ export class UserController {
   constructor(private readonly userService: UserService) { }
 
   @Post('/address/:idUser')
-  async createUserAddress(
-    @Param('idUser') idUser: string,
-    @Body() addressData: AddressDto,
-  ): Promise<Address> {
+  async createUserAddress(@Param('idUser') idUser: string, @Body() addressData: AddressDto): Promise<Address> {
     return await this.userService.createUserAddress(idUser, addressData);
   }
 
@@ -51,5 +49,10 @@ export class UserController {
   @Get('/orders/:idUser')
   async getUserOrders(@Param('idUser') idUser: string): Promise<User[]> {
     return await this.userService.getUserOrders(idUser);
+  }
+
+  @Get('/re-order/cart/:cartId')
+  async getReorderCart(@Param('cartId') cartId: string): Promise<Cart> {
+    return await this.userService.getReorderCart(cartId);
   }
 }

@@ -6,6 +6,8 @@ import { User, UserSchema } from 'src/schemas/user.schema';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { ParseAndFillEntity } from 'src/helpers/parseandFillEntity';
+import { SubproductBought, SubproductBoughtSchema } from 'src/schemas/subprodsBought.schema';
+import { Cart, CartSchema } from 'src/schemas/cart.schema';
 
 @Module({
   imports: [
@@ -13,6 +15,8 @@ import { ParseAndFillEntity } from 'src/helpers/parseandFillEntity';
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Address.name, schema: AddressSchema },
+      { name: SubproductBought.name, schema: SubproductBoughtSchema },
+      { name: Cart.name, schema: CartSchema }
     ]),
   ],
   controllers: [UserController],

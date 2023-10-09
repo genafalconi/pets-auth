@@ -1,20 +1,28 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { StatusOrder } from 'src/dto/types.dto';
+import { Address } from './address.schema';
+import { Cart } from './cart.schema';
+import { Offer } from './offers.schema';
+import { User } from './user.schema';
+import { SubproductBought } from './subprodsBought.schema';
 
 @Schema({ timestamps: true })
 export class Order extends Document {
   @Prop({ type: Types.ObjectId, ref: 'User' })
-  user: Types.ObjectId;
+  user: User;
 
   @Prop({ type: Types.ObjectId, ref: 'Cart' })
-  cart: Types.ObjectId;
+  cart: Cart;
+
+  @Prop({ type: Types.ObjectId, ref: 'SubproductBought' })
+  products: SubproductBought[]
 
   @Prop({ type: Types.ObjectId, ref: 'Address' })
-  address: Types.ObjectId;
+  address: Address;
 
   @Prop({ type: Types.ObjectId, ref: 'Offer' })
-  offer: Types.ObjectId;
+  offer: Offer;
 
   @Prop({ required: true })
   payment_type: string;
@@ -22,8 +30,11 @@ export class Order extends Document {
   @Prop({ default: false })
   message_sent: boolean;
 
-  @Prop({ default: false })
+  @Prop({ default: StatusOrder.CONFIRMED })
   status: StatusOrder;
+
+  @Prop({ default: true })
+  ecommerce: boolean;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
