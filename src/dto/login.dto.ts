@@ -12,7 +12,7 @@ export class CartDto {
   _id: string;
   user: Types.ObjectId | string;
   active: boolean;
-  subproducts: Array<{ subproduct: Subproduct; quantity: number }>;
+  subproducts: Array<{ subproduct: Subproduct; quantity: number, profit: number }>;
   total_price: number;
   total_products: number;
 }
