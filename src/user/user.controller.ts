@@ -6,8 +6,7 @@ import {
   Param,
   Post,
   Put,
-  Query,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import { AddressDto, DeleteAddressDto } from 'src/dto/address.dto';
 import { FirebaseAuthGuard } from 'src/firebase/firebase.auth.guard';
@@ -16,7 +15,7 @@ import { Address } from 'src/schemas/address.schema';
 import { User } from 'src/schemas/user.schema';
 import { Cart } from 'src/schemas/cart.schema';
 
-// @UseGuards(FirebaseAuthGuard)
+@UseGuards(FirebaseAuthGuard)
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) { }
