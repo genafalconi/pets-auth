@@ -24,7 +24,7 @@ jobs:
         run: npm ci
 
       - name: Create Service Account Key
-        run: echo '${{ secrets.SERVICE_ACCOUNT }}' > $HOME/gcloud.json
+        run: echo 'variables ${{ secrets.SERVICE_ACCOUNT }}' > $HOME/gcloud.json
 
       - name: Deploy Cloud Functions
         run: |
