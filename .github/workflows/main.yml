@@ -21,7 +21,7 @@ jobs:
           node-version: 18.x
           
       - name: Build Cloud Functions
-        run: cd functions && npm ci
+        run: npm ci
 
       - name: Create Service Account Key
         run: echo '${{ secrets.SERVICE_ACCOUNT }}' > $HOME/gcloud.json
