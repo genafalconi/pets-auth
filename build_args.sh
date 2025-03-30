@@ -2,11 +2,11 @@
 
 # Determine the environment file to use based on the branch
 if [[ "$GITHUB_REF" == "refs/heads/development" ]]; then
-  ENV_FILE="dev.env"
+  ENV_FILE=".env"
 elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
-  ENV_FILE="dev.env"
+  ENV_FILE=".env"
 else
-  ENV_FILE="dev.env"
+  ENV_FILE=".env"
 fi
 
 # Create an empty string to hold all build arguments
@@ -21,7 +21,7 @@ while IFS= read -r line; do
     VAR_NAME=$(echo $line | cut -d= -f1)
     VAR_VALUE=$(echo $line | cut -d= -f2-)
 
-    # If the value contains '\n', replace it with actual newlines
+    # Replace escaped newlines with actual newlines for variables containing \n
     if [[ "$VAR_VALUE" == *\\n* ]]; then
       VAR_VALUE=$(echo -e "$VAR_VALUE")
     fi
@@ -29,7 +29,7 @@ while IFS= read -r line; do
     BUILD_ARGS+=" --build-arg ${VAR_NAME}='${VAR_VALUE}'"
     DOCKERFILE_VARS+="ARG ${VAR_NAME}\nENV ${VAR_NAME}=\${${VAR_NAME}}\n"
   fi
-done < "env/${ENV_FILE}"
+done < "${ENV_FILE}"
 
 # Output the build arguments
 echo "BUILD_ARGS=${BUILD_ARGS}" >> $GITHUB_ENV
