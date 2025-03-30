@@ -21,7 +21,7 @@ while IFS= read -r line; do
     VAR_NAME=$(echo $line | cut -d= -f1)
     VAR_VALUE=$(echo $line | cut -d= -f2-)
 
-    # Replace escaped newlines with actual newlines for variables containing \n
+    # If the value contains '\n', replace it with actual newlines
     if [[ "$VAR_VALUE" == *\\n* ]]; then
       VAR_VALUE=$(echo -e "$VAR_VALUE")
     fi
