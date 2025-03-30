@@ -17,7 +17,7 @@ RUN npm install
 COPY . .
 
 # Accept the environment file as an argument
-ARG ENV_FILE=dev.env
+ARG ENV_FILE=local.env
 COPY ./env/${ENV_FILE} .env
 
 # Placeholder for dynamically generated ARG and ENV directives
