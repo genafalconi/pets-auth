@@ -2,11 +2,11 @@
 
 # Determine the environment file to use based on the branch
 if [[ "$GITHUB_REF" == "refs/heads/development" ]]; then
-  ENV_FILE=".env"
+  ENV_FILE="dev.env"
 elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
-  ENV_FILE=".env"
+  ENV_FILE="dev.env"
 else
-  ENV_FILE=".env"
+  ENV_FILE="dev.env"
 fi
 
 # Create an empty string to hold all build arguments
