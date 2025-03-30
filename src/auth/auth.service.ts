@@ -58,7 +58,7 @@ export class AuthService {
       Logger.log('User logged', userInDb);
       return { user: userInDb, cart: cartUser ? cartUser : {} };
     } catch (error) {
-      throw new HttpException(`Failed to log in user: ${error.message}`, HttpStatus.BAD_REQUEST);
+      throw new HttpException(`Failed to log in user: ${JSON.stringify(error)}`, HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -90,7 +90,7 @@ export class AuthService {
         throw new HttpException('Hay un error al registrarse', HttpStatus.BAD_REQUEST);
       }
     } catch (error) {
-      throw new Error(`Failed to register user: ${error.message}`);
+      throw new Error(`Failed to register user: ${JSON.stringify(error)}`);
     }
   }
 
@@ -108,7 +108,7 @@ export class AuthService {
 
       return { access_token: idToken, refresh_token: refreshToken };
     } catch (error) {
-      throw new Error(`Failed to get token: ${error.message}`);
+      throw new Error(`Failed to get token: ${JSON.stringify(error)}`);
     }
   }
 
@@ -122,7 +122,7 @@ export class AuthService {
         return false;
       }
     } catch (error) {
-      throw new Error(`Failed to verify token: ${error.message}`);
+      throw new Error(`Failed to verify token: ${JSON.stringify(error)}`);
     }
   }
 
@@ -140,7 +140,7 @@ export class AuthService {
         return false;
       }
     } catch (error) {
-      throw new Error(`Failed to verify admin token: ${error.message}`);
+      throw new Error(`Failed to verify admin token: ${JSON.stringify(error)}`);
     }
   }
 
@@ -224,7 +224,7 @@ export class AuthService {
         .lean();
       return userCart || null;
     } catch (error) {
-      throw new Error(`Failed to get user cart: ${error.message}`);
+      throw new Error(`Failed to get user cart: ${JSON.stringify(error)}`);
     }
   }
 
